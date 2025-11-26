@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мои курсы | УчисьВесело!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Тот же фон с паттерном */
+        .bg-pattern {
+            background-color: #fdfbf7;
+            background-image: radial-gradient(#FFD700 2px, transparent 2px), radial-gradient(#FF6B6B 2px, transparent 2px);
+            background-size: 40px 40px;
+            background-position: 0 0, 20px 20px;
+        }
+
+        /* Те же blob-анимации */
+        .blob {
+            position: absolute;
+            filter: blur(40px);
+            z-index: -1;
+            opacity: 0.6;
+            animation: float 10s infinite ease-in-out;
+        }
+        @keyframes float {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(20px, 30px) rotate(10deg); }
+            100% { transform: translate(0, 0) rotate(0deg); }
+        }
+
+        /* Анимации появления */
+        .fade-in-section {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+            will-change: opacity, transform;
+        }
+        .fade-in-section.is-visible {
+            opacity: 1;
+            transform: none;
+        }
+
+        /* Модальное окно — без перекрытия стилей */
+        .modal {
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0.3s, opacity 0.3s;
+        }
+        .modal.active {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Карусель: простая, без внешних библиотек */
+        .carousel-inner {
+            display: flex;
+            transition: transform 0.4s ease-in-out;
+        }
+        .carousel-item {
+            min-width: 100%;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body class="bg-pattern text-slate-800">
+
+    <!-- 🔹 ТА ЖЕ НАВИГАЦИЯ -->
+    <nav class="fixed w-full z-50 bg-white/90 backdrop-blur-md shadow-sm transition-all duration-300" id="navbar">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <div class="flex items-center">
+                    <span class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-pink-500 cursor-pointer" onclick="window.location.href='/'">
+                        УчисьВесело!
+                    </span>
+                </div>
+                <div class="hidden md:flex space-x-8">
+                    <a href="/" class="text-slate-600 hover:text-orange-500 font-bold transition">Главная</a>
+                    <a href="/about" class="text-slate-600 hover:text-orange-500 font-bold transition">Обо мне</a>
+                    <a href="/courses" class="text-orange-500 font-bold border-b-2 border-orange-500">Курсы</a>
+                    <a href="/reviews" class="text-slate-600 hover:text-orange-500 font-bold transition">Отзывы</a>
+                </div>
+                <div class="hidden md:flex">
+                    <button onclick="openBookingModal()" class="bg-gradient-to-r from-orange-400 to-pink-500 hover:from-orange-500 hover:to-pink-600 text-white px-6 py-2 rounded-full font-bold shadow-lg transform hover:scale-105 transition duration-300">
+                        Записаться
+                    </button>
+                </div>
+                <div class="md:hidden flex items-center">
+                    <button onclick="toggleMobileMenu()" class="text-slate-600 hover:text-orange-500 focus:outline-none">
+                        <i data-lucide="menu" class="w-8 h-8"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Menu (скрыт по умолчанию, как на главной) -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white shadow-lg absolute w-full">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 text-center">
+                <a href="/" onclick="toggleMobileMenu()" class="block px-3 py-2 rounded-md text-base font-bold text-slate-700 hover:text-orange-500 hover:bg-orange-50">Главная</a>
+                <a href="/about" onclick="toggleMobileMenu()" class="block px-3 py-2 rounded-md text-base font-bold text-slate-700 hover:text-orange-500 hover:bg-orange-50">Обо мне</a>
+                <a href="/courses" onclick="toggleMobileMenu()" class="block px-3 py-2 rounded-md text-base font-bold text-orange-500 border-b-2 border-orange-500">Курсы</a>
+                <a href="/reviews" onclick="toggleMobileMenu()" class="block px-3 py-2 rounded-md text-base font-bold text-slate-700 hover:text-orange-500 hover:bg-orange-50">Отзывы</a>
+                <button onclick="openBookingModal(); toggleMobileMenu()" class="w-full mt-4 bg-orange-500 text-white px-6 py-3 rounded-xl font-bold">
+                    Записаться
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 🔹 HERO (адаптированный под «Курсы») -->
+    <section class="relative pt-32 pb-16 lg:pt-48 lg:pb-20 overflow-hidden">
+        <div class="blob bg-yellow-300 w-96 h-96 rounded-full top-0 left-0 -translate-x-1/2 -translate-y-1/2"></div>
+        <div class="blob bg-pink-300 w-80 h-80 rounded-full bottom-0 right-0 translate-x-1/3 translate-y-1/3"></div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div class="text-center fade-in-section">
+                <span class="inline-block py-1 px-3 rounded-full bg-orange-100 text-orange-600 font-bold text-sm mb-4">
+                    🎁 Готовые курсы — забирайте знания!
+                </span>
+                <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-6">
+                    Мои <span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-pink-500">готовые курсы</span>
+                </h1>
+                <p class="text-xl text-slate-600 mb-10 max-w-3xl mx-auto">
+                    Проверенные программы для самостоятельного обучения или занятий с родителями. Яркие материалы, интерактивные задания и пошаговые инструкции — всё в одном.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 🔹 ВИТРИНА КУРСОВ -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-10">
+                <!-- 🔸 Курс 1 -->
+                <div class="bg-red-50 p-8 rounded-3xl border-2 border-red-100 fade-in-section service-card">
+                    <img src="https://images.unsplash.com/photo-1630374998063-0a7c2a96c6a1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" 
+                         alt="Русский язык" class="w-full rounded-2xl mb-6 h-56 object-cover">
+                    <h3 class="text-2xl font-bold text-slate-800 mb-3">Русский язык</h3>
+                    <p class="text-slate-600 mb-4">
+                        Исправляем почерк, учим словарные слова, разбираем правила без зубрежки. Пишем диктанты на 5!
+                    </p>
+                    <div class="flex items-center justify-between mt-6">
+                        <div class="text-2xl font-bold text-orange-600">2 500 ₽</div>
+                        <button onclick="openCourseModal('russian')" class="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold shadow-md transition">
+                            Купить
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 🔸 Курс 2 -->
+                <div class="bg-blue-50 p-8 rounded-3xl border-2 border-blue-100 fade-in-section service-card delay-100">
+                    <img src="https://images.unsplash.com/photo-1571981484908-59c588066a2f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" 
+                         alt="Математика" class="w-full rounded-2xl mb-6 h-56 object-cover">
+                    <h3 class="text-2xl font-bold text-slate-800 mb-3">Математика</h3>
+                    <p class="text-slate-600 mb-4">
+                        Развиваем логику, учим таблицу умножения играючи, решаем задачи с удовольствием.
+                    </p>
+                    <div class="flex items-center justify-between mt-6">
+                        <div class="text-2xl font-bold text-orange-600">2 800 ₽</div>
+                        <button onclick="openCourseModal('math')" class="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold shadow-md transition">
+                            Купить
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 🔸 Курс 3 -->
+                <div class="bg-indigo-50 p-8 rounded-3xl border-2 border-indigo-100 fade-in-section service-card delay-200">
+                    <img src="https://images.unsplash.com/photo-1533105079780-92b9be482077?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" 
+                         alt="Английский язык" class="w-full rounded-2xl mb-6 h-56 object-cover">
+                    <h3 class="text-2xl font-bold text-slate-800 mb-3">Английский язык</h3>
+                    <p class="text-slate-600 mb-4">
+                        Первые шаги в языке: игры, песенки, мультики. Учимся читать и говорить простыми фразами.
+                    </p>
+                    <div class="flex items-center justify-between mt-6">
+                        <div class="text-2xl font-bold text-orange-600">3 200 ₽</div>
+                        <button onclick="openCourseModal('english')" class="px-5 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-bold shadow-md transition">
+                            Купить
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 🔸 Курс 4 -->
+                <div class="bg-green-50 p-8 rounded-3xl border-2 border-green-100 fade-in-section service-card delay-300">
+                    <img src="https://images.unsplash.com/photo-1523580494863-6f3031224c94?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" 
+                         alt="Подготовка к школе" class="w-full rounded-2xl mb-6 h-56 object-cover">
+                    <h3 class="text-2xl font-bold text-slate-800 mb-3">Подготовка к школе</h3>
+                    <p class="text-slate-600 mb-4">
+                        Комплексная подготовка к 1 классу: чтение, счёт, окружающий мир и психологическая готовность.
+                    </p>
+                    <div class="flex items-center justify-between mt-6">
+                        <div class="text-2xl font-bold text-orange-600">3 500 ₽</div>
+                        <button onclick="openCourseModal('prep')" class="px-5 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold shadow-md transition">
+                            Купить
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 🔹 МОДАЛЬНОЕ ОКНО КУРСА -->
+    <div id="courseModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal">
+        <div class="fixed inset-0 bg-slate-900 bg-opacity-75 transition-opacity" onclick="closeCourseModal()"></div>
+        <div class="relative bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl transform transition-all">
+            <button onclick="closeCourseModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 z-10">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+
+            <div class="p-6 sm:p-8">
+                <!-- Заголовок -->
+                <h2 id="modal-title" class="text-3xl font-extrabold text-slate-800 text-center mb-2">Название курса</h2>
+                <p id="modal-price" class="text-center text-orange-600 font-bold text-xl mb-6">Цена: —</p>
+
+                <!-- Карусель -->
+                <div class="mb-8 rounded-2xl overflow-hidden shadow-lg">
+                    <div class="carousel-inner" id="carousel-inner">
+                        <!-- Заполняется JS -->
+                    </div>
+                    <div class="flex justify-between px-4 py-2 bg-white/80 backdrop-blur-sm">
+                        <button onclick="carouselPrev()" class="p-2 rounded-full bg-slate-100 hover:bg-slate-200">
+                            <i data-lucide="chevron-left" class="w-5 h-5 text-slate-600"></i>
+                        </button>
+                        <button onclick="carouselNext()" class="p-2 rounded-full bg-slate-100 hover:bg-slate-200">
+                            <i data-lucide="chevron-right" class="w-5 h-5 text-slate-600"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Описание -->
+                <div id="modal-desc" class="text-slate-700 text-lg leading-relaxed mb-8">
+                    Подробное описание курса...
+                </div>
+
+                <!-- Кнопка покупки (пока без функции — вы подключите) -->
+                <div class="text-center">
+                    <button class="px-8 py-4 bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold text-lg rounded-2xl shadow-lg hover:scale-105 transition w-full sm:w-auto">
+                        Купить курс
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🔹 FOOTER — тот же -->
+    <footer class="bg-slate-900 text-white py-12 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-8">
+                <div class="text-center md:text-left">
+                    <span class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-pink-500">
+                        УчисьВесело!
+                    </span>
+                    <p class="text-slate-400 mt-2">Репетитор начальных классов</p>
+                </div>
+                <div class="flex gap-6">
+                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-blue-600 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-green-600 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                    </a>
+                </div>
+                <div class="text-center md:text-right text-slate-400 text-sm">
+                    <p>Телефон: +7 (999) 000-00-00</p>
+                    <p>Email: teacher@example.com</p>
+                </div>
+            </div>
+            <div class="border-t border-slate-800 mt-8 pt-8 text-center text-slate-500 text-xs">
+                &copy; 2025 УчисьВесело. Все права защищены.
+            </div>
+        </div>
+    </footer>
+
+    <!-- 🔹 JS -->
+    <script>
+        lucide.createIcons();
+
+        // Курсы: данные (замените на реальные пути к изображениям)
+        const coursesData = {
+            russian: {
+                title: "Русский язык",
+                price: "2 500 ₽",
+                desc: "Полный курс для 1–4 классов: каллиграфия, словарные слова, части речи, диктанты.\n\n✅ 20 интерактивных уроков (PDF + презентации)\n✅ Карточки для запоминания\n✅ Игры на грамотность\n✅ Методичка для родителей\n\nКурс подойдёт для самостоятельных занятий или как дополнение к школьной программе.",
+                images: [
+                    "https://images.unsplash.com/photo-1630374998063-0a7c2a96c6a1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+                    "https://images.unsplash.com/photo-1551836022-d5d88e9218df?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+                    "https://images.unsplash.com/photo-1589998059171-988d887df646?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
+                ]
+            },
+            math: {
+                title: "Математика",
+                price: "2 800 ₽",
+                desc: "От счёта до решения составных задач. Акцент на логике, визуальном мышлении и устном счёте.\n\n✅ 24 урока-игры\n✅ Карточки «Таблица умножения за 2 недели»\n✅ Логические головоломки\n✅ Онлайн-тренажёры (ссылки)\n\nФормат: PDF + ссылки на интерактивные задания.",
+                images: [
+                    "https://images.unsplash.com/photo-1571981484908-59c588066a2f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+                    "https://images.unsplash.com/photo-1618004652321-13a63e57697e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
+                ]
+            },
+            english: {
+                title: "Английский язык",
+                price: "3 200 ₽",
+                desc: "Для детей 5–10 лет. Первые слова, фразы, чтение по слогам.\n\n✅ 16 тематических уроков (цвета, животные, семья и др.)\n✅ Аудио для произношения\n✅ Мини-подкасты для детей\n✅ Игры типа «Bingo», «Memory Match»\n\nВсе материалы можно распечатать или использовать на планшете.",
+                images: [
+                    "https://images.unsplash.com/photo-1533105079780-92b9be482077?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+                    "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+                    "https://images.unsplash.com/photo-1547334811-85a856889823?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
+                ]
+            },
+            prep: {
+                title: "Подготовка к школе",
+                price: "3 500 ₽",
+                desc: "6-месячная программа для будущих первоклассников.\n\n✅ Чтение целыми словами (метод «Слоговые дорожки»)\n✅ Счёт до 20, понятие «больше/меньше»\n✅ Развитие памяти, внимания, мелкой моторики\n✅ Психологическая готовность («Что такое школа?», «Правила поведения»)\n\nФормат: PDF-блокнот + 12 видеоуроков (доступ 6 мес).",
+                images: [
+                    "https://images.unsplash.com/photo-1523580494863-6f3031224c94?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+                    "https://images.unsplash.com/photo-1593692906347-fd9e5b8e8d10?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
+                ]
+            }
+        };
+
+        let currentCourse = null;
+        let currentIndex = 0;
+
+        function openCourseModal(id) {
+            const course = coursesData[id];
+            if (!course) return;
+
+            currentCourse = id;
+            currentIndex = 0;
+
+            document.getElementById('modal-title').textContent = course.title;
+            document.getElementById('modal-price').textContent = `Цена: ${course.price}`;
+            document.getElementById('modal-desc').textContent = course.desc;
+
+            // Генерируем карусель
+            const inner = document.getElementById('carousel-inner');
+            inner.innerHTML = course.images.map(src => 
+                `<div class="carousel-item"><img src="${src}" alt="" class="w-full h-80 object-cover"></div>`
+            ).join('');
+
+            updateCarousel();
+            document.getElementById('courseModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeCourseModal() {
+            document.getElementById('courseModal').classList.remove('active');
+            document.body.style.overflow = '';
+            currentCourse = null;
+        }
+
+        function carouselNext() {
+            if (!currentCourse) return;
+            const n = coursesData[currentCourse].images.length;
+            currentIndex = (currentIndex + 1) % n;
+            updateCarousel();
+        }
+
+        function carouselPrev() {
+            if (!currentCourse) return;
+            const n = coursesData[currentCourse].images.length;
+            currentIndex = (currentIndex - 1 + n) % n;
+            updateCarousel();
+        }
+
+        function updateCarousel() {
+            if (!currentCourse) return;
+            const offset = -currentIndex * 100;
+            document.getElementById('carousel-inner').style.transform = `translateX(${offset}%)`;
+        }
+
+        // Close on Esc
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && document.getElementById('courseModal').classList.contains('active')) {
+                closeCourseModal();
+            }
+        });
+
+        // Mobile menu (как на главной)
+        function toggleMobileMenu() {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        }
+
+        // Плавное появление секций
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                }
+            });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.fade-in-section').forEach(el => observer.observe(el));
+    </script>
+</body>
+</html>
